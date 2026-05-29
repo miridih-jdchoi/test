@@ -768,7 +768,7 @@ h3 { font-size: clamp(20px, 1.8vw, 28px); line-height: 1.2; font-weight: 700; co
 }
 #s7 .tgt-stack {
   position: relative;
-  width: 320px; height: 400px;
+  width: 320px; height: 320px;
   transform-style: preserve-3d;
 }
 #s7 .tgt-layer {
@@ -792,20 +792,23 @@ h3 { font-size: clamp(20px, 1.8vw, 28px); line-height: 1.2; font-weight: 700; co
 #s7 .tgt-layer.t-img    { background: linear-gradient(135deg, rgba(244,114,182,.18), rgba(167,139,250,.10)); }
 #s7 .tgt-layer.t-shape  { background: linear-gradient(135deg, rgba(103,232,249,.18), rgba(167,139,250,.10)); }
 #s7 .tgt-layer.t-text   { background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(167,139,250,.08)); }
-#s7 .action-row { display: flex; justify-content: center; gap: 12px; margin-top: 28px; }
-.action-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 14px 28px;
-  font-size: 14px; font-weight: 700;
-  letter-spacing: .14em; text-transform: uppercase;
-  color: var(--white);
-  background: linear-gradient(135deg, var(--purple), var(--pink));
-  border: none; border-radius: 999px;
-  cursor: pointer;
-  box-shadow: 0 12px 30px rgba(167,139,250,.4), 0 0 0 1px rgba(255,255,255,.1);
-  transition: transform .2s ease, box-shadow .2s ease;
+#s7 .src-canvas { cursor: pointer; }
+/* fake cursor that demonstrates the click */
+#s7 .demo-cursor {
+  position: absolute; left: 50%; top: 50%;
+  width: 26px; height: 26px; margin: -3px 0 0 -3px;
+  pointer-events: none; z-index: 30; opacity: 0;
+  filter: drop-shadow(0 6px 10px rgba(0,0,0,.45));
 }
-.action-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(167,139,250,.5); }
+#s7 .demo-cursor svg { width: 100%; height: 100%; display: block; fill: #fff; stroke: rgba(0,0,0,.35); stroke-width: 1; }
+#s7 .demo-ripple {
+  position: absolute; left: 50%; top: 50%;
+  width: 96px; height: 96px; margin: -48px 0 0 -48px;
+  border-radius: 50%;
+  border: 2.5px solid var(--pink);
+  box-shadow: 0 0 26px rgba(244,114,182,.7);
+  pointer-events: none; z-index: 29; opacity: 0;
+}
 
 /* ============== SLIDE 8 — Prism Box Hero ============== */
 @property --ringAngle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
@@ -1213,6 +1216,10 @@ h3 { font-size: clamp(20px, 1.8vw, 28px); line-height: 1.2; font-weight: 700; co
             <div class="so-shape"></div>
             <div class="scanline" id="scanline"></div>
           </div>
+          <div class="demo-ripple" id="demoRipple" aria-hidden="true"></div>
+          <div class="demo-cursor" id="demoCursor" aria-hidden="true">
+            <svg viewBox="0 0 24 24"><path d="M4 2l16 9-6.9 1.5L9.7 20 4 2z"/></svg>
+          </div>
         </div>
         <div class="arrow">→</div>
         <div class="decomp-target">
@@ -1224,9 +1231,6 @@ h3 { font-size: clamp(20px, 1.8vw, 28px); line-height: 1.2; font-weight: 700; co
           </div>
           <div class="particles" id="p7"></div>
         </div>
-      </div>
-      <div class="action-row">
-        <button class="action-btn" id="decompBtn">▶ 분해 시작</button>
       </div>
     </div>
   </section>
@@ -1774,11 +1778,26 @@ function animFeatureAHero() {
 
 // SLIDE 7 — Feature A LIVE DECOMPOSITION
 function animFeatureADemo() {
+  const cursor = document.getElementById('demoCursor');
+  const ripple = document.getElementById('demoRipple');
   // reset
   gsap.set('#s7 .tgt-layer', { opacity: 0, z: 0, y: 0, scale: .92 });
   gsap.set('#s7 .scanline', { opacity: 0, top: '0%' });
   gsap.set('#s7 .src-canvas .so-title, #s7 .src-canvas .so-img, #s7 .src-canvas .so-cap, #s7 .src-canvas .so-shape',
-    { opacity: 1 });
+    { opacity: 1, filter: 'blur(0px)' });
+  gsap.set(cursor, { opacity: 0, x: 140, y: 150, scale: 1 });
+  gsap.set(ripple, { opacity: 0, scale: 0 });
+
+  // auto-play: a fake cursor glides in, clicks the source, which triggers the decompose
+  const tl = gsap.timeline({ delay: .9 });
+  tl.to(cursor, { opacity: 1, duration: .3, ease: 'power2.out' }, 0);
+  tl.to(cursor, { x: 4, y: 8, duration: 1.0, ease: 'power3.inOut' }, 0);   // glide to canvas center
+  tl.to(cursor, { scale: .8, duration: .12, ease: 'power2.in' }, 1.0);     // press down
+  tl.to(cursor, { scale: 1, duration: .2, ease: 'back.out(2.2)' }, 1.12);  // release
+  tl.set(ripple, { opacity: .9, scale: 0 }, 1.02);                          // click ripple
+  tl.to(ripple, { scale: 1, opacity: 0, duration: .65, ease: 'power2.out' }, 1.02);
+  tl.add(runDecompose, 1.08);                                               // click fires the demo
+  tl.to(cursor, { opacity: 0, x: 80, y: 90, duration: .5, ease: 'power2.in' }, 1.5);
 }
 function runDecompose() {
   const scan = document.getElementById('scanline');
@@ -1803,10 +1822,10 @@ function runDecompose() {
 
   // 3) target layers fade in, stacked in 3D depth
   const layout = [
-    { y:  90, z: -140 },
-    { y:  30, z:  -50 },
-    { y: -30, z:   60 },
-    { y: -90, z:  150 },
+    { y:  74, z: -140 },
+    { y:  28, z:  -50 },
+    { y: -16, z:   60 },
+    { y: -54, z:  150 },
   ];
   tgts.forEach((t, i) => {
     tl.to(t, {
@@ -1820,7 +1839,8 @@ function runDecompose() {
   // particles burst between source and target
   spawnParticles(document.getElementById('p7'), 14);
 }
-document.getElementById('decompBtn').addEventListener('click', runDecompose);
+// presenter can replay the whole demo (cursor + decompose) by clicking the source
+document.getElementById('srcCanvas').addEventListener('click', animFeatureADemo);
 
 // SLIDE 8 — Feature B HERO: prompt clouds orbiting magic frame
 function animFeatureBHero() {
