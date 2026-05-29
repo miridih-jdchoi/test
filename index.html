@@ -1,0 +1,1974 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>Prism Lens × Prism Box — 미리캔버스 해커톤 제안</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js"></script>
+<style>
+:root {
+  --bg: #07070d;
+  --bg2: #0f0f1a;
+  --panel: #14141f;
+  --sub: #1c1c2a;
+  --line: #2a2a3d;
+  --text: #e5e7eb;
+  --muted: #9ca3af;
+  --white: #ffffff;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --cyan: #67e8f9;
+  --green: #34d399;
+  --yellow: #fbbf24;
+  --red: #f87171;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%; width: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-feature-settings: 'cv11', 'ss03';
+  -webkit-font-smoothing: antialiased;
+}
+body { cursor: default; }
+.deck {
+  position: relative;
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+}
+
+.slide {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  padding: 5vh 6vw;
+  opacity: 0; pointer-events: none;
+  transition: opacity .55s ease;
+  background: var(--bg);
+}
+.slide.active { opacity: 1; pointer-events: auto; }
+.slide-inner { width: 100%; max-width: 1400px; position: relative; }
+
+/* ambient gradient backdrop */
+.aura {
+  position: absolute; inset: -20%;
+  background:
+    radial-gradient(40% 35% at 18% 22%, rgba(167,139,250,.18), transparent 60%),
+    radial-gradient(35% 30% at 82% 78%, rgba(244,114,182,.15), transparent 60%),
+    radial-gradient(30% 25% at 50% 50%, rgba(103,232,249,.06), transparent 60%);
+  filter: blur(20px);
+  pointer-events: none;
+  z-index: 0;
+}
+.slide-inner { z-index: 1; }
+
+/* header bar */
+.hud {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px 36px;
+  font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+  color: var(--muted);
+  z-index: 100;
+  pointer-events: none;
+}
+.hud .brand { display: flex; align-items: center; gap: 10px; }
+.hud .dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  box-shadow: 0 0 12px var(--purple);
+}
+.hud .counter { font-family: 'Space Grotesk', monospace; }
+.progress {
+  position: fixed; bottom: 0; left: 0;
+  height: 3px; width: 0;
+  background: linear-gradient(90deg, var(--purple), var(--pink));
+  transition: width .55s ease;
+  z-index: 100;
+  box-shadow: 0 0 12px var(--purple);
+}
+
+/* typography */
+h1 { font-size: clamp(48px, 7.4vw, 120px); line-height: 1.02; letter-spacing: -.03em; font-weight: 800; color: var(--white); }
+h2 { font-size: clamp(36px, 4.6vw, 72px); line-height: 1.08; letter-spacing: -.02em; font-weight: 700; color: var(--white); margin-bottom: 32px; }
+h3 { font-size: clamp(20px, 1.8vw, 28px); line-height: 1.2; font-weight: 700; color: var(--white); }
+.eyebrow { font-size: 12px; letter-spacing: .22em; text-transform: uppercase; color: var(--purple); font-weight: 700; margin-bottom: 18px; }
+.lead { font-size: clamp(18px, 1.6vw, 24px); line-height: 1.55; color: var(--text); max-width: 1000px; }
+.muted { color: var(--muted); }
+.accent { background: linear-gradient(110deg, var(--purple), var(--pink) 60%, var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.mono { font-family: 'Space Grotesk', ui-monospace, monospace; }
+
+/* SLIDE 1 — TITLE */
+#s1 .stage { display: flex; flex-direction: column; gap: 16px; position: relative; }
+#s1 h1 { line-height: .96; }
+#s1 .sub {
+  margin-top: 28px; font-size: clamp(18px, 1.7vw, 26px);
+  color: var(--text); max-width: 900px; line-height: 1.55;
+}
+#s1 .meta {
+  position: absolute; bottom: -120px; left: 0; right: 0;
+  display: flex; justify-content: space-between;
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted);
+}
+#s1 .bar { width: 4px; height: 96px; background: linear-gradient(180deg, var(--purple), var(--pink)); border-radius: 2px; margin-bottom: 28px; }
+
+/* SLIDE 2 — INTRO (curved frosted feed scrolling) */
+#s2 { padding: 0; }
+#s2 .stage {
+  position: relative; width: 100%; height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 45% at 50% 40%, rgba(40,30,80,.25), transparent 70%),
+    var(--bg);
+}
+#s2 .top {
+  position: absolute; top: 7vh; left: 0; right: 0;
+  text-align: center;
+  z-index: 6;
+}
+#s2 .news-counter {
+  font-family: 'Space Grotesk', monospace;
+  font-size: clamp(15px, 1.2vw, 18px);
+  color: var(--muted);
+  margin-bottom: 14px;
+  letter-spacing: .04em;
+}
+#s2 .news-counter .num { color: var(--white); font-weight: 700; }
+#s2 .headline {
+  font-size: clamp(26px, 3.4vw, 50px);
+  font-weight: 800; color: var(--white);
+  letter-spacing: -.02em;
+}
+/* the stage where the curved feed lives */
+#s2 .scene {
+  position: relative;
+  width: 100%; height: 100%;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
+}
+/* the curved feed itself */
+#s2 .feed-wrap {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%) rotateX(0deg);
+  transform-style: preserve-3d;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center; justify-content: center;
+  pointer-events: none;
+  will-change: transform, filter, opacity;
+  /* radial mask — focus the middle, fade edges */
+  -webkit-mask-image: radial-gradient(ellipse 55% 50% at 50% 50%, #000 35%, rgba(0,0,0,.55) 65%, transparent 95%);
+  mask-image: radial-gradient(ellipse 55% 50% at 50% 50%, #000 35%, rgba(0,0,0,.55) 65%, transparent 95%);
+}
+#s2 .strip {
+  position: absolute;
+  display: flex; flex-direction: column;
+  gap: 18px;
+  width: 360px;
+  will-change: transform, filter;
+}
+#s2 .strip.center { z-index: 3; }
+#s2 .strip.left   { z-index: 1; left: -260px;  width: 320px; opacity: .55; filter: blur(8px); }
+#s2 .strip.right  { z-index: 1; right: -260px; width: 320px; opacity: .55; filter: blur(8px); }
+#s2 .strip.far-left  { z-index: 0; left: -460px;  width: 280px; opacity: .35; filter: blur(14px); }
+#s2 .strip.far-right { z-index: 0; right: -460px; width: 280px; opacity: .35; filter: blur(14px); }
+
+#s2 .ncard {
+  background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid rgba(255,255,255,.06);
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  grid-template-columns: 70px 1fr;
+  gap: 14px;
+  align-items: center;
+  flex-shrink: 0;
+}
+#s2 .ncard .thumb {
+  width: 70px; height: 70px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #1e1b4b, #581c87 60%, #db2777);
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+#s2 .ncard .thumb::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(125deg, transparent 30%, rgba(255,255,255,.15) 50%, transparent 70%);
+}
+#s2 .ncard .lines { display: flex; flex-direction: column; gap: 6px; }
+#s2 .ncard .l {
+  height: 7px;
+  border-radius: 3px;
+  background: rgba(255,255,255,.18);
+}
+#s2 .ncard .l.w90 { width: 90%; }
+#s2 .ncard .l.w70 { width: 70%; }
+#s2 .ncard .l.w55 { width: 55%; }
+#s2 .ncard .l.w40 { width: 40%; }
+#s2 .ncard .l.purple { background: linear-gradient(90deg, var(--purple), var(--pink)); height: 9px; }
+#s2 .ncard .l.short { width: 30%; }
+
+/* curvature simulated via tilted strip column */
+#s2 .strip.left  > .ncard { transform: perspective(900px) rotateY(35deg); }
+#s2 .strip.right > .ncard { transform: perspective(900px) rotateY(-35deg); }
+#s2 .strip.far-left  > .ncard { transform: perspective(700px) rotateY(55deg); }
+#s2 .strip.far-right > .ncard { transform: perspective(700px) rotateY(-55deg); }
+
+/* result cards */
+#s2 .results {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px;
+  width: min(680px, 78vw);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 7;
+}
+#s2 .rcard {
+  background: rgba(20,20,31,.55);
+  -webkit-backdrop-filter: blur(22px) saturate(160%);
+  backdrop-filter: blur(22px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex; flex-direction: column; gap: 4px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.5),
+              inset 0 1px 0 rgba(255,255,255,.06);
+  opacity: 0;
+}
+#s2 .rcard .rn { color: var(--white); font-weight: 700; font-size: 17px; }
+#s2 .rcard .rw { color: var(--muted); font-size: 12px; }
+#s2 .rcard .rp {
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  font-weight: 800; font-size: 22px;
+  font-family: 'Space Grotesk', monospace;
+  letter-spacing: -.02em;
+  margin-top: 4px;
+}
+
+/* asymmetric multi-blob iridescent wash — not a single round blink */
+#s2 .flash {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 45% 32% at 32% 42%, rgba(167,139,250,.55) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 28% at 64% 58%, rgba(244,114,182,.45) 0%, transparent 65%),
+    radial-gradient(ellipse 32% 22% at 48% 30%, rgba(120,200,255,.30) 0%, transparent 65%),
+    radial-gradient(ellipse 28% 20% at 55% 70%, rgba(255,200,140,.28) 0%, transparent 65%),
+    radial-gradient(ellipse 25% 18% at 40% 60%, rgba(140,255,210,.22) 0%, transparent 65%);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 5;
+  filter: blur(48px) saturate(160%);
+  mix-blend-mode: screen;
+  transform-origin: 50% 50%;
+}
+/* secondary layer with same blobs offset + counter-rotating = oil-slick swirl */
+#s2 .flash::before {
+  content: '';
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 40% 30% at 60% 38%, rgba(180,150,255,.40) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 26% at 36% 62%, rgba(255,140,210,.35) 0%, transparent 70%),
+    radial-gradient(ellipse 30% 22% at 70% 52%, rgba(110,170,255,.25) 0%, transparent 70%);
+  filter: blur(60px) saturate(150%);
+  mix-blend-mode: screen;
+  transform-origin: 50% 50%;
+}
+#s2 .vignette {
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse 80% 100% at 50% 50%, transparent 50%, rgba(0,0,0,.6) 90%);
+  pointer-events: none;
+  z-index: 2;
+}
+#s2 .replay {
+  position: absolute; bottom: 24px; right: 32px;
+  padding: 8px 14px; font-size: 12px;
+  background: rgba(28,28,42,.7);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 999px; color: var(--text); cursor: pointer;
+  letter-spacing: .06em;
+  z-index: 10;
+}
+#s2 .replay:hover { background: var(--panel); border-color: var(--purple); }
+#s2 .label-bottom {
+  position: absolute; bottom: 5vh; left: 0; right: 0;
+  text-align: center;
+  font-size: 11px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+  z-index: 5;
+}
+
+/* SLIDE 3 — PROBLEM */
+#s3 .stage { text-align: left; }
+#s3 .big-quote {
+  font-size: clamp(48px, 6.4vw, 100px);
+  font-weight: 800; line-height: 1.05; letter-spacing: -.025em;
+  color: var(--white);
+}
+#s3 .word { display: inline-block; opacity: 0; transform: translateY(40px); }
+#s3 .word.pink { color: var(--pink); }
+#s3 .below { margin-top: 40px; font-size: clamp(18px, 1.6vw, 22px); color: var(--text); max-width: 1000px; }
+#s3 .accent-line { color: var(--purple); font-weight: 700; margin-top: 20px; }
+
+/* SLIDE 4 — WHY NOW */
+#s4 .timeline {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px;
+  margin-top: 48px;
+}
+.tcard {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 28px;
+  border: 1px solid var(--line);
+  position: relative;
+  overflow: hidden;
+}
+.tcard::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px;
+  background: linear-gradient(180deg, var(--purple), var(--pink));
+}
+.tcard .when { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--purple); margin-bottom: 14px; font-weight: 700; }
+.tcard .what { font-size: 22px; font-weight: 700; color: var(--white); margin-bottom: 12px; line-height: 1.2; }
+.tcard .so { font-size: 14px; color: var(--muted); line-height: 1.6; }
+
+/* SLIDE 5 — SOLUTION TWO CARDS */
+#s5 .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-top: 48px; }
+.feature-card {
+  background: linear-gradient(180deg, var(--panel), var(--bg2));
+  border-radius: 22px;
+  padding: 40px;
+  border: 1px solid var(--line);
+  position: relative; overflow: hidden;
+  min-height: 420px;
+  display: flex; flex-direction: column; gap: 18px;
+}
+.feature-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 5px;
+}
+.feature-card.a::before { background: linear-gradient(90deg, var(--purple), transparent); }
+.feature-card.b::before { background: linear-gradient(90deg, var(--pink), transparent); }
+.feature-card .tag { font-size: 11px; letter-spacing: .22em; text-transform: uppercase; font-weight: 700; }
+.feature-card.a .tag { color: var(--purple); }
+.feature-card.b .tag { color: var(--pink); }
+.feature-card h3 { font-size: clamp(28px, 3vw, 44px); }
+.feature-card .summary { font-size: 18px; color: var(--text); line-height: 1.5; }
+.feature-card ul { list-style: none; display: flex; flex-direction: column; gap: 10px; }
+.feature-card li { font-size: 15px; color: var(--muted); padding-left: 18px; position: relative; }
+.feature-card li::before { content: '·'; position: absolute; left: 0; color: var(--purple); font-weight: 700; }
+.feature-card.b li::before { color: var(--pink); }
+
+
+
+
+/* ============================================================
+   SLIDE 5 — Custom Font Style Preservation Demo
+   ============================================================ */
+#s5fontdemo .lead-copy {
+  margin-top: 14px;
+  max-width: 860px;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.65;
+}
+#s5fontdemo .font-stage {
+  margin-top: 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+#s5fontdemo .stage-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.04);
+  border: 1px solid rgba(255,255,255,.09);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .01em;
+}
+#s5fontdemo .stage-status .pulse {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 12px var(--cyan);
+}
+#s5fontdemo .stage-replay {
+  padding: 9px 16px;
+  font-size: 12px;
+  letter-spacing: .06em;
+  color: var(--text);
+  background: rgba(28,28,42,.7);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+  opacity: 0;
+}
+#s5fontdemo .stage-replay:hover { background: var(--panel); border-color: var(--purple); }
+#s5fontdemo .poster-frame {
+  position: relative;
+  width: min(900px, 92%);
+  min-height: clamp(360px, 42vh, 480px);
+  border-radius: 26px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,.08);
+  background:
+    radial-gradient(70% 50% at 15% 20%, rgba(244,114,182,.14), transparent 60%),
+    radial-gradient(65% 55% at 85% 20%, rgba(103,232,249,.14), transparent 62%),
+    linear-gradient(180deg, #131325 0%, #0d1020 100%);
+  box-shadow: 0 30px 90px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06);
+}
+#s5fontdemo .poster-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent 0 94%, rgba(255,255,255,.05) 94% 100%),
+    linear-gradient(90deg, transparent 0 94%, rgba(255,255,255,.03) 94% 100%);
+  background-size: 100% 28px, 28px 100%;
+  opacity: .28;
+  pointer-events: none;
+}
+#s5fontdemo .poster-tag {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.8);
+  font-size: 12px;
+  font-weight: 700;
+}
+/* the AI glyph foundry — each generated character pops in to form the new font */
+#s5fontdemo .glyph-foundry {
+  opacity: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+#s5fontdemo .foundry-label {
+  font: 700 11px/1 'Space Grotesk', monospace;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--cyan);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#s5fontdemo .foundry-label .count {
+  color: rgba(255,255,255,.55);
+  font-weight: 600;
+}
+#s5fontdemo .glyph-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#s5fontdemo .glyph {
+  width: 42px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  border: 1px solid rgba(103,232,249,.3);
+  background: rgba(103,232,249,.07);
+  box-shadow: inset 0 0 18px rgba(103,232,249,.08);
+  font-family: 'Anton', 'Space Grotesk', sans-serif;
+  font-size: 26px;
+  line-height: 1;
+  color: #dff9ff;
+  opacity: 0;
+}
+/* flow container so the existing copy never overlaps */
+#s5fontdemo .poster-copy {
+  position: absolute;
+  left: 44px;
+  right: 44px;
+  top: 58px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 20px;
+}
+#s5fontdemo .source-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+/* the distinctive poster style — shared by the original AND the typed line,
+   so it's obvious the same font/fill/glow was replicated */
+#s5fontdemo .poster-style {
+  position: relative;
+  font-family: 'Anton', 'Space Grotesk', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: .03em;
+  line-height: .98;
+  font-weight: 400;
+  background: linear-gradient(135deg, #ffffff 0%, #ffd6ef 42%, #b7e7ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter:
+    drop-shadow(0 6px 20px rgba(167,139,250,.4))
+    drop-shadow(0 2px 6px rgba(244,114,182,.35));
+}
+#s5fontdemo .poster-style.main {
+  font-size: clamp(64px, 5.8vw, 100px);
+}
+#s5fontdemo .poster-sub {
+  color: rgba(255,255,255,.7);
+  font-size: 18px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+#s5fontdemo .poster-style.added {
+  font-size: clamp(38px, 3.4vw, 54px);
+  margin-top: 8px;
+  opacity: 0;
+}
+/* the typed text is in a child span — give it the same gradient clip so it shows */
+#s5fontdemo .poster-style.added #fontTypedText {
+  background: linear-gradient(135deg, #ffffff 0%, #ffd6ef 42%, #b7e7ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+#s5fontdemo .cursor {
+  display: inline-block;
+  width: 3px;
+  height: .92em;
+  margin-left: 6px;
+  vertical-align: -6px;
+  background: var(--cyan);
+  box-shadow: 0 0 10px rgba(103,232,249,.7);
+  opacity: 0;
+}
+#s5fontdemo .scan-frame {
+  position: absolute;
+  left: 26px;
+  right: 26px;
+  top: 54px;
+  height: 156px;
+  border: 1.5px dashed rgba(103,232,249,.6);
+  border-radius: 14px;
+  box-shadow: inset 0 0 36px rgba(103,232,249,.12);
+  opacity: 0;
+  pointer-events: none;
+}
+#s5fontdemo .scanline {
+  position: absolute;
+  left: 0;
+  top: -12%;
+  width: 100%;
+  height: 16%;
+  background: linear-gradient(180deg, rgba(103,232,249,0), rgba(103,232,249,.28), rgba(103,232,249,0));
+  opacity: 0;
+  pointer-events: none;
+}
+#s5fontdemo .result-badge {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: rgba(52,211,153,.12);
+  border: 1px solid rgba(52,211,153,.22);
+  color: #bbf7d0;
+  font-size: 12px;
+  font-weight: 800;
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+
+/* ============================================================
+   SLIDES 6–9 — FEATURE SHOWCASE (샤라락 ver.)
+   ============================================================ */
+
+/* shared hero layout */
+.hero-layout {
+  display: grid;
+  grid-template-columns: 1fr 1.1fr;
+  gap: 56px;
+  align-items: center;
+  margin-top: 40px;
+  min-height: 60vh;
+}
+.hero-layout.reverse { grid-template-columns: 1.1fr 1fr; }
+.hero-layout.reverse .hero-left  { order: 2; }
+.hero-layout.reverse .hero-right { order: 1; }
+.hero-title {
+  font-size: clamp(56px, 7vw, 110px);
+  line-height: .95;
+  letter-spacing: -.03em;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 28px;
+}
+.hero-sub {
+  font-size: clamp(20px, 2vw, 28px);
+  color: var(--text); line-height: 1.45;
+  margin-bottom: 36px;
+}
+.hero-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.hchip {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: var(--text);
+  background: rgba(20,20,31,.5);
+  -webkit-backdrop-filter: blur(10px) saturate(160%);
+  backdrop-filter: blur(10px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px;
+}
+.hchip .dot { color: var(--purple); font-size: 8px; }
+.hchip:nth-child(2n) .dot { color: var(--pink); }
+.hchip:nth-child(3n) .dot { color: var(--cyan); }
+
+/* particles drifting */
+.particles { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.particle {
+  position: absolute;
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  filter: blur(.5px);
+  box-shadow: 0 0 8px rgba(167,139,250,.6);
+  opacity: 0;
+}
+
+/* ============== SLIDE 6 — Prism Lens Hero ============== */
+#s6 .layer-stack {
+  position: relative;
+  width: 100%; height: 60vh;
+  max-height: 540px;
+  perspective: 1500px;
+  perspective-origin: 50% 40%;
+  display: flex; align-items: center; justify-content: center;
+}
+#s6 .lg-card {
+  position: absolute;
+  width: 360px; height: 240px;
+  border-radius: 22px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Space Grotesk', monospace;
+  font-size: 16px;
+  letter-spacing: .2em;
+  font-weight: 700;
+  background: linear-gradient(160deg, rgba(255,255,255,.08), rgba(255,255,255,.02));
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow:
+    0 30px 80px rgba(0,0,0,.5),
+    inset 0 1px 0 rgba(255,255,255,.10),
+    inset 0 0 50px rgba(167,139,250,.05);
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+#s6 .lg-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: linear-gradient(135deg,
+    rgba(167,139,250,.18) 0%,
+    transparent 40%,
+    transparent 60%,
+    rgba(244,114,182,.12) 100%);
+  pointer-events: none;
+}
+#s6 .lg-card .ltag {
+  position: absolute; top: 16px; left: 18px;
+  font-size: 11px; letter-spacing: .25em;
+  color: rgba(255,255,255,.6);
+}
+#s6 .lg-card .lname {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -.01em;
+  color: var(--white);
+}
+#s6 .lg-card.l-bg     { background: linear-gradient(135deg, rgba(124,58,237,.25), rgba(219,39,119,.15)); border-color: rgba(167,139,250,.3); }
+#s6 .lg-card.l-img    { background: linear-gradient(135deg, rgba(56,189,248,.18), rgba(124,58,237,.12)); border-color: rgba(103,232,249,.3); }
+#s6 .lg-card.l-shape  { background: linear-gradient(135deg, rgba(244,114,182,.22), rgba(251,191,36,.10)); border-color: rgba(244,114,182,.3); }
+#s6 .lg-card.l-text   { background: linear-gradient(135deg, rgba(167,139,250,.30), rgba(244,114,182,.20)); border-color: rgba(255,255,255,.25); }
+#s6 .lg-card .lname.purple { color: var(--purple); }
+#s6 .lg-card .lname.pink   { color: var(--pink); }
+#s6 .lg-card .lname.cyan   { color: var(--cyan); }
+
+/* ============== SLIDE 7 — Prism Lens LIVE DEMO ============== */
+#s7 .decomp-wrap {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 32px;
+  margin-top: 40px;
+  align-items: center;
+  height: 56vh;
+}
+#s7 .decomp-source {
+  position: relative;
+  height: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+#s7 .src-canvas {
+  position: relative;
+  width: 100%; max-width: 420px;
+  aspect-ratio: 4/5;
+  border-radius: 20px;
+  background: linear-gradient(160deg, #1a103f, #3b1e5c 50%, #5b2466);
+  border: 1px solid rgba(255,255,255,.08);
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,.5);
+}
+#s7 .src-canvas .so-title  { position: absolute; top: 8%; left: 6%; right: 6%; color: var(--white); font-size: 32px; font-weight: 800; letter-spacing: -.02em; }
+#s7 .src-canvas .so-img    { position: absolute; top: 30%; left: 50%; transform: translateX(-50%); width: 70%; height: 36%; border-radius: 14px; background: linear-gradient(135deg, #f472b6, #a78bfa, #67e8f9); }
+#s7 .src-canvas .so-cap    { position: absolute; bottom: 14%; left: 6%; right: 6%; color: rgba(255,255,255,.7); font-size: 14px; }
+#s7 .src-canvas .so-shape  { position: absolute; bottom: 8%; right: 6%; width: 32px; height: 32px; border-radius: 50%; background: var(--cyan); }
+#s7 .src-canvas .scanline {
+  position: absolute; left: -5%; right: -5%; height: 4px;
+  background: linear-gradient(90deg, transparent, rgba(167,139,250,1), rgba(244,114,182,1), transparent);
+  box-shadow: 0 0 20px var(--purple), 0 0 40px var(--pink);
+  filter: blur(1px);
+  top: 0; opacity: 0;
+}
+#s7 .arrow {
+  font-size: 60px;
+  font-weight: 300;
+  color: var(--muted);
+  text-align: center;
+  opacity: .6;
+}
+#s7 .decomp-target {
+  position: relative;
+  height: 100%;
+  perspective: 1400px;
+  display: flex; align-items: center; justify-content: center;
+}
+#s7 .tgt-stack {
+  position: relative;
+  width: 320px; height: 400px;
+  transform-style: preserve-3d;
+}
+#s7 .tgt-layer {
+  position: absolute; inset: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(20,20,31,.85), rgba(28,28,42,.85));
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+  backdrop-filter: blur(14px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 16px 40px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; letter-spacing: .2em; font-weight: 700;
+  opacity: 0;
+}
+#s7 .tgt-layer .ltag {
+  position: absolute; top: 14px; left: 16px;
+  font-size: 10px; letter-spacing: .25em; color: rgba(255,255,255,.5);
+}
+#s7 .tgt-layer .lcontent { font-size: 18px; color: var(--white); letter-spacing: -.01em; font-weight: 700; }
+#s7 .tgt-layer.t-bg     { background: linear-gradient(135deg, rgba(124,58,237,.18), rgba(219,39,119,.10)); }
+#s7 .tgt-layer.t-img    { background: linear-gradient(135deg, rgba(244,114,182,.18), rgba(167,139,250,.10)); }
+#s7 .tgt-layer.t-shape  { background: linear-gradient(135deg, rgba(103,232,249,.18), rgba(167,139,250,.10)); }
+#s7 .tgt-layer.t-text   { background: linear-gradient(135deg, rgba(255,255,255,.10), rgba(167,139,250,.08)); }
+#s7 .action-row { display: flex; justify-content: center; gap: 12px; margin-top: 28px; }
+.action-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px;
+  font-size: 14px; font-weight: 700;
+  letter-spacing: .14em; text-transform: uppercase;
+  color: var(--white);
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  border: none; border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(167,139,250,.4), 0 0 0 1px rgba(255,255,255,.1);
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.action-btn:hover { transform: translateY(-2px); box-shadow: 0 16px 40px rgba(167,139,250,.5); }
+
+/* ============== SLIDE 8 — Prism Box Hero ============== */
+@property --ringAngle { syntax: '<angle>'; initial-value: 0deg; inherits: false; }
+@keyframes ringSpin { to { --ringAngle: 360deg; } }
+@keyframes ringBreath { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+#s8 .prompt-orbit {
+  position: relative;
+  width: 100%; height: 60vh;
+  max-height: 540px;
+  display: flex; align-items: center; justify-content: center;
+}
+#s8 .magic-frame {
+  position: absolute;
+  width: 320px; height: 320px;
+  border-radius: 28px;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(rgba(20,20,31,.45), rgba(20,20,31,.45)) padding-box,
+    conic-gradient(from var(--ringAngle, 0deg),
+      var(--purple), var(--pink), var(--cyan), var(--purple)) border-box;
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  box-shadow:
+    0 0 80px rgba(167,139,250,.35),
+    inset 0 0 60px rgba(167,139,250,.06);
+  animation: ringSpin 8s linear infinite, ringBreath 3.5s ease-in-out infinite;
+}
+#s8 .magic-frame::before {
+  content: '"한 줄로\A 바꾸세요"';
+  white-space: pre-wrap; text-align: center;
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--white); font-size: 22px; font-weight: 700;
+  letter-spacing: -.01em;
+  opacity: .9;
+}
+#s8 .pcloud {
+  position: absolute;
+  padding: 12px 18px;
+  font-size: 14px;
+  background: rgba(20,20,31,.5);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  backdrop-filter: blur(12px) saturate(160%);
+  border: 1px solid rgba(255,255,255,.10);
+  border-radius: 999px;
+  color: var(--white);
+  white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0,0,0,.4);
+  opacity: 0;
+}
+#s8 .pcloud::before {
+  content: ''; position: absolute; inset: 0; border-radius: 999px;
+  background: linear-gradient(135deg, rgba(167,139,250,.08), rgba(244,114,182,.05));
+  pointer-events: none;
+}
+
+/* ============== SLIDE 9 — Prism Box LIVE DEMO ============== */
+#s9 .play-area {
+  position: relative;
+  margin-top: 24px;
+  background: linear-gradient(160deg, rgba(20,20,31,.6), rgba(15,15,26,.6));
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 22px;
+  height: 58vh;
+  overflow: hidden;
+  user-select: none;
+  cursor: crosshair;
+  box-shadow: 0 20px 60px rgba(0,0,0,.4);
+}
+#s9 .hint {
+  position: absolute; top: 18px; left: 22px;
+  font-size: 11px; letter-spacing: .2em; text-transform: uppercase;
+  color: var(--muted);
+  pointer-events: none;
+  z-index: 5;
+}
+#s9 .canvas-el {
+  position: absolute;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  background: rgba(28,28,42,.6);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.08);
+  color: var(--text);
+  transition: all .5s ease;
+}
+#s9 .canvas-el.t1 { left: 7%; top: 22%; font-size: 28px; font-weight: 800; color: var(--white); padding: 14px 20px; letter-spacing: -.02em; }
+#s9 .canvas-el.t2 { left: 7%; top: 44%; max-width: 320px; line-height: 1.5; }
+#s9 .canvas-el.t3 { left: 7%; top: 66%; color: var(--muted); font-family: 'Space Grotesk', monospace; font-size: 13px; letter-spacing: .1em; }
+#s9 .canvas-el.img1 {
+  right: 7%; top: 18%; width: 240px; height: 150px;
+  background: linear-gradient(135deg, #1e1b4b, #6d28d9, #db2777);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.9); font-size: 12px; letter-spacing: .2em;
+  font-weight: 700;
+}
+#s9 .canvas-el.img2 {
+  right: 12%; top: 56%; width: 130px; height: 90px;
+  background: linear-gradient(135deg, #312e81, #6d28d9, #db2777);
+  display: flex; align-items: center; justify-content: center;
+  color: rgba(255,255,255,.85); font-size: 11px; letter-spacing: .15em;
+  font-weight: 700;
+}
+#s9 .selection-box {
+  position: absolute;
+  border: 2px solid transparent;
+  background:
+    linear-gradient(rgba(20,20,31,.2), rgba(20,20,31,.2)) padding-box,
+    linear-gradient(135deg, var(--purple), var(--pink), var(--cyan)) border-box;
+  border-radius: 14px;
+  box-shadow: 0 0 0 0 rgba(167,139,250,.4),
+    inset 0 0 30px rgba(167,139,250,.15);
+  display: none;
+  pointer-events: none;
+}
+#s9 .prompt-bar {
+  position: absolute;
+  display: none;
+  background: rgba(20,20,31,.85);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid var(--purple);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: 0 20px 60px rgba(167,139,250,.4), 0 0 0 1px rgba(167,139,250,.25);
+  gap: 10px; align-items: center;
+  z-index: 10;
+}
+#s9 .prompt-bar input {
+  background: transparent; border: none; outline: none;
+  color: var(--white); font-size: 14px; font-family: inherit;
+  width: 320px;
+}
+#s9 .prompt-bar input::placeholder { color: var(--muted); }
+#s9 .prompt-bar .send {
+  background: linear-gradient(135deg, var(--purple), var(--pink));
+  color: var(--white); font-weight: 800; font-size: 11px;
+  padding: 8px 14px; border: none; border-radius: 8px; cursor: pointer;
+  letter-spacing: .12em; text-transform: uppercase;
+  box-shadow: 0 6px 18px rgba(167,139,250,.4);
+}
+#s9 .processing {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: none; flex-direction: column; align-items: center; gap: 16px;
+  color: var(--white); font-size: 13px; letter-spacing: .18em; text-transform: uppercase;
+  z-index: 8;
+}
+#s9 .processing .ring {
+  width: 64px; height: 64px;
+  border: 2px solid rgba(255,255,255,.1);
+  border-top-color: var(--purple);
+  border-right-color: var(--pink);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  filter: drop-shadow(0 0 20px rgba(167,139,250,.6));
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#s9 .reset {
+  position: absolute; bottom: 16px; right: 22px;
+  padding: 8px 14px; font-size: 11px;
+  background: rgba(28,28,42,.7);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.1); color: var(--text);
+  border-radius: 999px; cursor: pointer; letter-spacing: .12em;
+  text-transform: uppercase;
+  z-index: 5;
+}
+#s9 .reset:hover { background: var(--panel); border-color: var(--pink); }
+#s9 .keyword-hints {
+  position: absolute; bottom: 18px; left: 22px;
+  display: flex; gap: 8px;
+  z-index: 5;
+}
+#s9 .keyword-hints .kw {
+  padding: 6px 12px;
+  font-size: 11px; letter-spacing: .1em;
+  background: rgba(28,28,42,.5);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 999px; color: var(--muted);
+}
+#s9 .keyword-hints .kw .k { color: var(--purple); }
+
+/* SLIDE 12 — CLOSING */
+#s12 .stage { text-align: center; position: relative; }
+#s12 .closing {
+  font-size: clamp(36px, 5.2vw, 80px);
+  line-height: 1.1; font-weight: 800;
+  color: var(--white);
+  margin-bottom: 24px;
+}
+#s12 .closing .accent { background: linear-gradient(110deg, var(--purple), var(--pink), var(--cyan)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+#s12 .sub { font-size: 22px; color: var(--text); margin-bottom: 56px; }
+#s12 .qa { font-size: 13px; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
+.orbit { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+.orbit-ring {
+  position: absolute; left: 50%; top: 50%;
+  border: 1px solid rgba(167,139,250,.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* nav hint */
+.nav-hint {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+  z-index: 50; opacity: .6;
+  pointer-events: none;
+}
+.nav-hint kbd {
+  background: var(--sub); border: 1px solid var(--line);
+  border-radius: 4px; padding: 2px 6px; font-family: 'Space Grotesk', monospace;
+  font-size: 10px; margin: 0 2px;
+}
+</style>
+</head>
+<body>
+
+<div class="hud">
+  <div class="brand"><span class="dot"></span><span>Prism Lens × Prism Box</span></div>
+  <div class="counter mono"><span id="curPage">01</span> / <span id="totalPage">12</span></div>
+</div>
+
+<div class="deck" id="deck">
+
+  <!-- ============ 1. TITLE ============ -->
+  <section class="slide active" id="s1">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="stage">
+        <div class="bar" data-anim="bar"></div>
+        <div class="eyebrow" data-anim="fade">미리캔버스 사내 24시간 해커톤 · 제안서</div>
+        <h1 data-anim="title"><span class="accent">Prism Lens</span></h1>
+        <h1 data-anim="title" style="margin-top:-12px;">× <span class="accent">Prism Box</span></h1>
+        <p class="sub" data-anim="fade">이미지 한 장이든, 자연어 한 줄이든 —<br>미리캔버스로 편집하세요.</p>
+        <div class="meta">
+          <span>발표 · 김민성 (mskim04) · 최정대 (jdchoi)</span>
+          <span>2026 · 05 · 29</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. PROBLEM ============ -->
+  <section class="slide" id="s3">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="stage">
+        <div class="eyebrow" data-anim="fade">01 · Problem</div>
+        <div class="big-quote">
+          <span class="word">AI가</span> <span class="word">만들어준</span> <span class="word">결과물은</span> <span class="word">멋있다.</span><br>
+          <span class="word">그런데</span> <span class="word pink">수정하려면</span><br>
+          <span class="word pink">다시</span> <span class="word pink">처음부터</span> <span class="word pink">만들어야</span> <span class="word pink">한다.</span>
+        </div>
+        <div class="below" data-anim="fade">플랫 이미지, AI 생성 결과, 외부 PPT 한 장 — 미리캔버스 입장에선 모두 '편집 불가'의 벽.</div>
+        <div class="below accent-line" data-anim="fade">우리는 이 벽을 두 가지 방법으로 부순다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. WHY NOW ============ -->
+  <section class="slide" id="s4">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">02 · Why now</div>
+      <h2 data-anim="title">시장은 이미 그 방향으로 움직이고 있다</h2>
+      <div class="timeline">
+        <div class="tcard"><div class="when">2026 · 03</div><div class="what">Canva Magic Layers 베타 출시</div><div class="so">플랫 이미지를 다시 편집 가능한 레이어로. 글로벌 1위가 정식 출시 → 1년 내 사용자 기대치 표준화.</div></div>
+        <div class="tcard"><div class="when">현재</div><div class="what">AI PPT 빌더의 영역-드래그 자연어 편집</div><div class="so">드래그한 사각형 안의 요소들을 자연어로 일괄 교체. 신규 컨벤션으로 확산 중.</div></div>
+        <div class="tcard"><div class="when">사내</div><div class="what">미리캔버스 AIP 트랙 운영 중</div><div class="so">AI Presentation 결과 → 에디터블 디자인 변환은 다음 단계의 자연스러운 진화.</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. SOLUTION ============ -->
+  <section class="slide" id="s5">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">03 · Solution</div>
+      <h2 data-anim="title">이미지로든 자연어로든, <span class="accent">편집 가능한 디자인</span>으로</h2>
+      <p class="lead muted" data-anim="fade">"AI가 만든 결과물을 다시 편집 가능한 미리캔버스 디자인으로 되돌린다."</p>
+      <div class="duo">
+        <div class="feature-card a" data-anim="card">
+          <div class="tag">Feature A</div>
+          <h3>Prism Lens</h3>
+          <div class="summary">이미지 한 장 → 편집 가능한 페이지</div>
+          <ul>
+            <li>PNG/JPG 업로드 한 번</li>
+            <li>텍스트·도형·이미지로 자동 분해</li>
+            <li>폰트 후보 자동 매칭</li>
+            <li>원본 레이아웃 보존</li>
+          </ul>
+        </div>
+        <div class="feature-card b" data-anim="card">
+          <div class="tag">Feature B</div>
+          <h3>Prism Box</h3>
+          <div class="summary">드래그 영역 → 자연어 한 줄로 교체</div>
+          <ul>
+            <li>캔버스 위에서 박스 드래그</li>
+            <li>그라디언트 AI 박스로 시각화</li>
+            <li>박스 내 요소 자동 수집</li>
+            <li>한 번의 호출로 일괄 교체</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6. FEATURE A · MAGIC LAYERS HERO ============ -->
+  <section class="slide" id="s6">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">04 · Feature A</div>
+      <div class="hero-layout">
+        <div class="hero-left">
+          <h1 class="hero-title" data-anim="title">Prism <span class="accent">Lens</span></h1>
+          <p class="hero-sub" data-anim="fade">이미지 한 장을<br>편집 가능한 레이어로</p>
+          <div class="hero-chips" data-anim="fade">
+            <div class="hchip"><span class="dot">●</span>텍스트 분리</div>
+            <div class="hchip"><span class="dot">●</span>이미지 추출</div>
+            <div class="hchip"><span class="dot">●</span>폰트 자동 매칭</div>
+            <div class="hchip"><span class="dot">●</span>레이아웃 보존</div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="layer-stack" id="ls6">
+            <div class="lg-card l-bg">
+              <div class="ltag">LAYER 01</div>
+              <div class="lname purple">BACKGROUND</div>
+            </div>
+            <div class="lg-card l-img">
+              <div class="ltag">LAYER 02</div>
+              <div class="lname cyan">IMAGE</div>
+            </div>
+            <div class="lg-card l-shape">
+              <div class="ltag">LAYER 03</div>
+              <div class="lname pink">SHAPE</div>
+            </div>
+            <div class="lg-card l-text">
+              <div class="ltag">LAYER 04</div>
+              <div class="lname">TEXT</div>
+            </div>
+            <div class="particles" id="p6"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 6-B. INTRO ANIM (Toss-style: curved frosted feed) ============ -->
+  <section class="slide" id="s2">
+    <!-- SVG vertical motion blur filter -->
+    <svg width="0" height="0" style="position:absolute;">
+      <defs>
+        <filter id="vblur" x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0 14"/>
+        </filter>
+        <filter id="vblur-light" x="-20%" y="-50%" width="140%" height="200%">
+          <feGaussianBlur in="SourceGraphic" stdDeviation="0 3"/>
+        </filter>
+      </defs>
+    </svg>
+    <div class="slide-inner" style="height:100%;">
+      <div class="stage">
+        <div class="top">
+          <div class="news-counter">디자인 <span class="num" id="newsCount">0</span>개 스캔 중</div>
+          <div class="headline">미리캔버스 AI가 편집 가능한 요소를 찾았어요</div>
+        </div>
+        <div class="scene">
+          <div class="feed-wrap" id="feedWrap">
+            <div class="strip far-left"  id="stripFL"></div>
+            <div class="strip left"      id="stripL"></div>
+            <div class="strip center"    id="stripC"></div>
+            <div class="strip right"     id="stripR"></div>
+            <div class="strip far-right" id="stripFR"></div>
+          </div>
+          <div class="vignette"></div>
+          <div class="flash" id="flash"></div>
+        </div>
+        <div class="results" id="results">
+          <div class="rcard"><div class="rn">텍스트 요소</div><div class="rw">제목 · 본문 · 캡션</div><div class="rp">32개</div></div>
+          <div class="rcard"><div class="rn">이미지 요소</div><div class="rw">사진 · 일러스트</div><div class="rp">8개</div></div>
+          <div class="rcard"><div class="rn">도형 / 라인</div><div class="rw">강조 · 구분선</div><div class="rp">15개</div></div>
+          <div class="rcard"><div class="rn">배경 레이어</div><div class="rw">단색 + 그라디언트</div><div class="rp">1개</div></div>
+        </div>
+        <div class="label-bottom">Feature A · 디자인 한 장을 편집 가능한 레이어로</div>
+        <button class="replay" id="replayIntro">▶ Replay</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 7. FEATURE A · LIVE DECOMPOSITION ============ -->
+  <section class="slide" id="s7">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">04 · Feature A · Live</div>
+      <h2 data-anim="title">클릭 한 번에, <span class="accent">편집 가능한 페이지로</span></h2>
+      <div class="decomp-wrap">
+        <div class="decomp-source">
+          <div class="src-canvas" id="srcCanvas">
+            <div class="so-title">미리캔버스<br>해커톤 발표</div>
+            <div class="so-img"></div>
+            <div class="so-cap">2026 · Spring · 김민성</div>
+            <div class="so-shape"></div>
+            <div class="scanline" id="scanline"></div>
+          </div>
+        </div>
+        <div class="arrow">→</div>
+        <div class="decomp-target">
+          <div class="tgt-stack" id="tgtStack">
+            <div class="tgt-layer t-bg"><div class="ltag">BACKGROUND</div><div class="lcontent">단색 + 그라디언트</div></div>
+            <div class="tgt-layer t-img"><div class="ltag">IMAGE</div><div class="lcontent">사진 1장</div></div>
+            <div class="tgt-layer t-shape"><div class="ltag">SHAPE</div><div class="lcontent">도형 1개</div></div>
+            <div class="tgt-layer t-text"><div class="ltag">TEXT</div><div class="lcontent">제목 · 캡션</div></div>
+          </div>
+          <div class="particles" id="p7"></div>
+        </div>
+      </div>
+      <div class="action-row">
+        <button class="action-btn" id="decompBtn">▶ 분해 시작</button>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============ 7-B. MAGIC LAYERS · CUSTOM FONT DEMO ============ -->
+  <section class="slide" id="s5fontdemo">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">04-B · Prism Lens · AI Font</div>
+      <h2 data-anim="title">이미지 속 글자를 폰트로 만들어,<br><span class="accent">같은 느낌으로 이어 쓰기</span></h2>
+      <p class="lead-copy" data-anim="fade">이미지 / PDF 속 글자를 AI가 영문·숫자·기호까지 생성해 하나의 커스텀 폰트로 만듭니다.<br>그 폰트가 적용된 텍스트로 원본과 같은 느낌의 글자를 새로 입력하고 편집할 수 있어요.</p>
+
+      <div class="font-stage">
+        <div class="stage-status" id="fontStatus">
+          <span class="pulse"></span>
+          <span id="fontStatusText">이미지 불러옴 · PNG / PDF</span>
+        </div>
+
+        <div class="poster-frame" id="fontStage">
+          <div class="poster-tag" id="fontStageTag">이미지 글자 · 편집 불가</div>
+          <div class="poster-copy">
+            <div class="source-group">
+              <div class="poster-style main">SALE 50%</div>
+              <div class="poster-sub">summer archive</div>
+            </div>
+            <div class="glyph-foundry" id="fontFoundry">
+              <div class="foundry-label"><span id="foundryLabelText">AI가 글자 세트를 생성하는 중 · A–Z a–z 0–9 기호</span><span class="count" id="foundryCount"></span></div>
+              <div class="glyph-row" id="glyphRow"></div>
+            </div>
+            <div class="poster-style added" id="fontTypedLine"><span id="fontTypedText"></span><span class="cursor" id="fontCursor"></span></div>
+          </div>
+          <div class="scan-frame" id="fontScanFrame"></div>
+          <div class="scanline" id="fontScanline"></div>
+          <div class="result-badge" id="fontResultBadge">AI 생성 폰트 · 편집 가능</div>
+        </div>
+
+        <button class="stage-replay" id="fontReplay">↺ 다시 보기</button>
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ============ 8. FEATURE B · AI MAGIC BOX HERO ============ -->
+  <section class="slide" id="s8">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">05 · Feature B</div>
+      <div class="hero-layout reverse">
+        <div class="hero-left">
+          <h1 class="hero-title" data-anim="title">Prism <span class="accent">Box</span></h1>
+          <p class="hero-sub" data-anim="fade">드래그한 영역을<br>자연어 한 줄로 교체</p>
+          <div class="hero-chips" data-anim="fade">
+            <div class="hchip"><span class="dot">●</span>드래그 영역 선택</div>
+            <div class="hchip"><span class="dot">●</span>그라디언트 박스</div>
+            <div class="hchip"><span class="dot">●</span>자연어 일괄 교체</div>
+            <div class="hchip"><span class="dot">●</span>한 번의 Undo</div>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="prompt-orbit" id="po8">
+            <div class="magic-frame"></div>
+            <div class="pcloud" style="top: 12%; left: 8%;">교토 가을 톤으로</div>
+            <div class="pcloud" style="top: 18%; right: 6%;">Q2 사업 보고서로</div>
+            <div class="pcloud" style="bottom: 22%; left: 4%;">미니멀 카페 메뉴</div>
+            <div class="pcloud" style="bottom: 14%; right: 8%;">신년 인사 카드</div>
+            <div class="pcloud" style="top: 50%; left: -2%;">우주 테마로 다 바꿔줘</div>
+            <div class="pcloud" style="top: 48%; right: -4%;">파스텔 톤으로</div>
+            <div class="particles" id="p8"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 9. FEATURE B · LIVE DRAG DEMO ============ -->
+  <section class="slide" id="s9">
+    <div class="aura"></div>
+    <div class="slide-inner">
+      <div class="eyebrow" data-anim="fade">05 · Feature B · Live</div>
+      <h2 data-anim="title">박스를 그려 보세요 <span style="color:var(--muted);font-weight:400;font-size:.55em;">— 진짜로 작동합니다</span></h2>
+      <div class="play-area" id="playArea">
+        <div class="hint">↘ 캔버스 위에서 드래그</div>
+        <div class="canvas-el t1" data-orig="제주도 여행 후기">제주도 여행 후기</div>
+        <div class="canvas-el t2" data-orig="에메랄드빛 바다와 한라산이 어우러진 풍경, 잊지 못할 3박 4일.">에메랄드빛 바다와 한라산이 어우러진 풍경, 잊지 못할 3박 4일.</div>
+        <div class="canvas-el t3" data-orig="2026 · SPRING · JEJU">2026 · SPRING · JEJU</div>
+        <div class="canvas-el img1" data-orig="🌊 BEACH PHOTO">🌊 BEACH PHOTO</div>
+        <div class="canvas-el img2" data-orig="🏔 HALLA">🏔 HALLA</div>
+        <div class="selection-box" id="selBox"></div>
+        <div class="prompt-bar" id="promptBar">
+          <input type="text" id="promptInput" placeholder="박스 안 요소들을 어떻게 바꿀까요?" />
+          <button class="send" id="sendPrompt">Apply ⏎</button>
+        </div>
+        <div class="processing" id="processing">
+          <div class="ring"></div>
+          <div>AI가 영역 안 요소를 분석 중…</div>
+        </div>
+        <div class="keyword-hints">
+          <div class="kw">시연 키워드:</div>
+          <div class="kw"><span class="k">교토</span></div>
+          <div class="kw"><span class="k">뉴욕</span></div>
+          <div class="kw"><span class="k">카페</span></div>
+          <div class="kw"><span class="k">비즈니스</span></div>
+        </div>
+        <button class="reset" id="resetCanvas">↺ Reset</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 12. CLOSING ============ -->
+  <section class="slide" id="s12">
+    <div class="aura"></div>
+    <div class="orbit">
+      <div class="orbit-ring" style="width:300px;height:300px;"></div>
+      <div class="orbit-ring" style="width:520px;height:520px;"></div>
+      <div class="orbit-ring" style="width:760px;height:760px;"></div>
+    </div>
+    <div class="slide-inner">
+      <div class="stage">
+        <div class="closing">
+          <span class="word">한 장의 이미지로 시작하고,</span><br>
+          <span class="word">한 줄의 자연어로 <span class="accent">마무리한다.</span></span>
+        </div>
+        <div class="sub" data-anim="fade">24시간 안에, 미리캔버스에서.</div>
+        <div class="qa" data-anim="fade">Q &amp; A · 김민성 · 최정대</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="progress" id="progress"></div>
+<div class="nav-hint"><kbd>←</kbd><kbd>→</kbd> 슬라이드 · <kbd>F</kbd> 풀스크린</div>
+
+<script>
+// ============== navigation ==============
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+document.getElementById('totalPage').textContent = String(total).padStart(2, '0');
+let cur = 0;
+
+function go(idx) {
+  if (idx < 0 || idx >= total) return;
+  slides[cur].classList.remove('active');
+  cur = idx;
+  slides[cur].classList.add('active');
+  document.getElementById('curPage').textContent = String(cur + 1).padStart(2, '0');
+  document.getElementById('progress').style.width = ((cur + 1) / total * 100) + '%';
+  setTimeout(() => playSlide(cur + 1), 80);
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') { e.preventDefault(); go(cur + 1); }
+  else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); go(cur - 1); }
+  else if (e.key === 'f' || e.key === 'F') {
+    if (!document.fullscreenElement) document.documentElement.requestFullscreen();
+    else document.exitFullscreen();
+  }
+});
+
+// init progress
+document.getElementById('progress').style.width = (1 / total * 100) + '%';
+
+// ============== animations ==============
+function playSlide(n) {
+  // common: fade/title/card entrance
+  const cur = slides[n - 1];
+  const fades = cur.querySelectorAll('[data-anim="fade"]');
+  const titles = cur.querySelectorAll('[data-anim="title"]');
+  const cards = cur.querySelectorAll('[data-anim="card"]');
+  gsap.fromTo(fades, { y: 20, opacity: 0 }, { y: 0, opacity: 1, duration: .7, stagger: .08, ease: 'power2.out' });
+  gsap.fromTo(titles, { y: 30, opacity: 0 }, { y: 0, opacity: 1, duration: .9, stagger: .1, ease: 'power3.out' });
+  gsap.fromTo(cards, { y: 40, opacity: 0, scale: .96 }, { y: 0, opacity: 1, scale: 1, duration: .8, stagger: .14, ease: 'back.out(1.4)' });
+
+  const sid = cur.id;
+  if (sid === 's1') animTitle();
+  if (sid === 's2') animIntro();
+  if (sid === 's3') animProblem();
+  if (sid === 's4') animWhyNow();
+  if (sid === 's5fontdemo') animFontDemo();
+  if (sid === 's6') animFeatureAHero();
+  if (sid === 's7') animFeatureADemo();
+  if (sid === 's8') animFeatureBHero();
+  if (sid === 's12') animClosing();
+}
+
+// SLIDE 1
+function animTitle() {
+  const s = document.querySelector('#s1');
+  gsap.fromTo(s.querySelector('.bar'), { scaleY: 0 }, { scaleY: 1, duration: .8, ease: 'power3.out', transformOrigin: 'top' });
+  gsap.fromTo(s.querySelectorAll('[data-anim="title"]'), { y: 50, opacity: 0, filter: 'blur(8px)' }, { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.1, stagger: .12, ease: 'power3.out' });
+}
+
+// SLIDE 2 — TOSS-STYLE INTRO  (curved frosted feed scrolling vertically + 펑)
+const LINE_PATTERNS = [
+  ['w90', 'w70', 'w55'],
+  ['w70', 'w90', 'w40'],
+  ['w55', 'w90', 'w70'],
+  ['w90', 'w55'],
+  ['w70', 'w70', 'w40', 'w55'],
+];
+const THUMB_GRADIENTS = [
+  'linear-gradient(135deg,#1e1b4b,#581c87,#db2777)',
+  'linear-gradient(135deg,#0c4a6e,#1e40af,#7c3aed)',
+  'linear-gradient(135deg,#831843,#be185d,#f97316)',
+  'linear-gradient(135deg,#064e3b,#0d9488,#06b6d4)',
+  'linear-gradient(135deg,#374151,#6b21a8,#ec4899)',
+  'linear-gradient(135deg,#1f2937,#4338ca,#f43f5e)',
+];
+
+function makeCard(seed) {
+  const card = document.createElement('div');
+  card.className = 'ncard';
+  const linePattern = LINE_PATTERNS[seed % LINE_PATTERNS.length];
+  const thumb = THUMB_GRADIENTS[seed % THUMB_GRADIENTS.length];
+  card.innerHTML = `
+    <div class="thumb" style="background:${thumb};"></div>
+    <div class="lines">
+      <div class="l ${seed % 4 === 0 ? 'purple' : 'w90'}"></div>
+      ${linePattern.map(c => `<div class="l ${c}"></div>`).join('')}
+    </div>`;
+  return card;
+}
+
+function fillStrip(stripEl, count, seedOffset = 0) {
+  stripEl.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    stripEl.appendChild(makeCard(i + seedOffset));
+  }
+}
+
+function buildFeed() {
+  fillStrip(document.getElementById('stripC'),  14, 0);
+  fillStrip(document.getElementById('stripL'),  12, 3);
+  fillStrip(document.getElementById('stripR'),  12, 6);
+  fillStrip(document.getElementById('stripFL'), 10, 9);
+  fillStrip(document.getElementById('stripFR'), 10, 12);
+}
+buildFeed();
+
+function animIntro() {
+  buildFeed();
+  const wrap = document.getElementById('feedWrap');
+  const center = document.getElementById('stripC');
+  const left = document.getElementById('stripL');
+  const right = document.getElementById('stripR');
+  const fleft = document.getElementById('stripFL');
+  const fright = document.getElementById('stripFR');
+  const allStrips = [center, left, right, fleft, fright];
+  const results = document.getElementById('results');
+  const rcards = results.querySelectorAll('.rcard');
+  const flash = document.getElementById('flash');
+  const counterEl = document.getElementById('newsCount');
+
+  // reset
+  gsap.set(wrap, { scale: 1.05, opacity: 0, filter: 'url(#vblur)', rotateX: 18 });
+  gsap.set(center, { y: 0 });
+  gsap.set(left,  { y: -50 });
+  gsap.set(right, { y: 40 });
+  gsap.set(fleft, { y: -120 });
+  gsap.set(fright,{ y: 80 });
+  gsap.set(results, { opacity: 0 });
+  gsap.set(rcards, { y: 24, opacity: 0, scale: .96 });
+  gsap.set(flash, { opacity: 0 });
+
+  // counter
+  gsap.killTweensOf(counterEl);
+  const ctr = { v: 0 };
+  gsap.to(ctr, {
+    v: 18341, duration: 3.2, ease: 'power2.out',
+    onUpdate: () => counterEl.textContent = Math.floor(ctr.v).toLocaleString(),
+  });
+
+  const tl = gsap.timeline();
+  // Phase A: fade-in with heavy vertical blur
+  tl.to(wrap, { opacity: 1, duration: .55, ease: 'power2.out' }, 0);
+
+  // Phase B: fast scroll. Center scrolls up; sides scroll different speeds.
+  // SVG filter handles the directional motion blur.
+  tl.to(center, { y: -1200, duration: 2.6, ease: 'power1.inOut' }, .1);
+  tl.to(left,   { y: -1000, duration: 2.6, ease: 'power1.inOut' }, .1);
+  tl.to(right,  { y: -1100, duration: 2.6, ease: 'power1.inOut' }, .1);
+  tl.to(fleft,  { y:  -900, duration: 2.6, ease: 'power1.inOut' }, .1);
+  tl.to(fright, { y: -1050, duration: 2.6, ease: 'power1.inOut' }, .1);
+
+  // ease out blur as it slows
+  tl.to(wrap, { rotateX: 10, duration: 2.2, ease: 'power2.out' }, .1);
+  tl.to(wrap, {
+    duration: .6, ease: 'power2.out',
+    onStart: () => wrap.style.filter = 'url(#vblur-light)',
+  }, 2.2);
+
+  // micro Y bounce — "스르륵" landing
+  tl.to(allStrips, {
+    y: '+=20', duration: .25, ease: 'power2.out', stagger: .02,
+  }, 2.7);
+  tl.to(allStrips, {
+    y: '-=20', duration: .35, ease: 'back.out(2)', stagger: .02,
+  }, 2.95);
+
+  // Phase C: opal swirl bloom — asymmetric, no round blink
+  gsap.set(flash, { scale: .85, rotation: -6, opacity: 0 });
+  tl.to(flash, {
+    opacity: 1, scale: 1.0, rotation: 4,
+    duration: 1.1, ease: 'power2.out',
+  }, 2.85);
+  tl.to(flash, {
+    opacity: 0, scale: 1.18, rotation: 12,
+    duration: 1.4, ease: 'power2.inOut',
+  }, 3.7);
+
+  tl.to(wrap, {
+    scale: 1.6, opacity: 0, duration: .9, ease: 'power3.out',
+    onStart: () => wrap.style.filter = 'blur(30px)',
+  }, 3.05);
+
+  // result cards appear from center
+  tl.to(results, { opacity: 1, duration: .3 }, 3.4);
+  tl.to(rcards, {
+    y: 0, opacity: 1, scale: 1,
+    duration: .7, stagger: .09, ease: 'back.out(1.5)',
+  }, 3.45);
+}
+document.getElementById('replayIntro').addEventListener('click', animIntro);
+
+// SLIDE 3 — PROBLEM (word reveal)
+function animProblem() {
+  const words = document.querySelectorAll('#s3 .word');
+  gsap.fromTo(words,
+    { y: 40, opacity: 0, filter: 'blur(6px)' },
+    { y: 0, opacity: 1, filter: 'blur(0px)', duration: .7, stagger: .06, ease: 'power2.out' });
+}
+
+// SLIDE 4 — Why now cards
+function animWhyNow() {
+  gsap.fromTo('#s4 .tcard',
+    { y: 30, opacity: 0 },
+    { y: 0, opacity: 1, duration: .7, stagger: .12, ease: 'power2.out', delay: .15 });
+}
+
+
+
+// SLIDE 5 — Custom font style preservation demo
+// typewriter helper: types `text` into `el` one char at a time
+let fontTypeCall = null;
+function stopTyping() { if (fontTypeCall) { fontTypeCall.kill(); fontTypeCall = null; } }
+function typeText(el, text, perChar, onDone) {
+  stopTyping();
+  let i = 0;
+  el.textContent = '';
+  const step = () => {
+    el.textContent = text.slice(0, i);
+    if (i < text.length) { i++; fontTypeCall = gsap.delayedCall(perChar, step); }
+    else { fontTypeCall = null; if (onDone) onDone(); }
+  };
+  step();
+}
+
+let fontCursorBlink = null;
+function startCursorBlink(cursor) {
+  if (fontCursorBlink) fontCursorBlink.kill();
+  gsap.set(cursor, { opacity: 1 });
+  fontCursorBlink = gsap.to(cursor, { opacity: .15, duration: .5, repeat: -1, yoyo: true, ease: 'steps(1)' });
+}
+function stopCursorBlink() {
+  if (fontCursorBlink) { fontCursorBlink.kill(); fontCursorBlink = null; }
+}
+
+function animFontDemo() {
+  const stage = document.querySelector('#s5fontdemo .poster-frame');
+  gsap.set('#s5fontdemo .stage-status', { y: 16, opacity: 0 });
+  gsap.set(stage, { y: 28, opacity: 0, scale: .97 });
+  gsap.set('#fontReplay', { opacity: 0, y: 10 });
+
+  const tl = gsap.timeline();
+  tl.to('#s5fontdemo .stage-status', { y: 0, opacity: 1, duration: .5, ease: 'power2.out' });
+  tl.to(stage, { y: 0, opacity: 1, scale: 1, duration: .7, ease: 'power3.out' }, '-=.3');
+  // auto-run the recovery sequence once the stage has settled
+  tl.add(() => runFontRecovery(), '+=.2');
+}
+
+// a representative sample of what the AI generates — upper/lower case, digits, symbols.
+// (the real feature builds the full character set; we just show a varied slice.)
+const FONT_GLYPHS = ['A','B','C','D','E','F','a','b','c','d','e','M','m','N','n','0','2','5','6','9','&','%','?','@','#','!'];
+
+function buildGlyphRow(row) {
+  row.innerHTML = '';
+  return FONT_GLYPHS.map(ch => {
+    const g = document.createElement('div');
+    g.className = 'glyph';
+    g.textContent = ch;
+    row.appendChild(g);
+    return g;
+  });
+}
+
+function runFontRecovery() {
+  const scan = document.getElementById('fontScanline');
+  const scanFrame = document.getElementById('fontScanFrame');
+  const foundry = document.getElementById('fontFoundry');
+  const glyphRow = document.getElementById('glyphRow');
+  const foundryCount = document.getElementById('foundryCount');
+  const foundryLabel = document.getElementById('foundryLabelText');
+  const typedLine = document.getElementById('fontTypedLine');
+  const typedText = document.getElementById('fontTypedText');
+  const cursor = document.getElementById('fontCursor');
+  const badge = document.getElementById('fontResultBadge');
+  const tag = document.getElementById('fontStageTag');
+  const statusText = document.getElementById('fontStatusText');
+  const frame = document.getElementById('fontStage');
+  const replay = document.getElementById('fontReplay');
+
+  // reset everything
+  gsap.killTweensOf([scan, scanFrame, foundry, typedLine, cursor, badge, frame]);
+  stopCursorBlink();
+  stopTyping();
+  typedText.textContent = '';
+  const glyphs = buildGlyphRow(glyphRow);
+  gsap.set(scan, { top: '-12%', opacity: 0 });
+  gsap.set(scanFrame, { opacity: 0 });
+  gsap.set(foundry, { opacity: 0 });
+  gsap.set(glyphs, { opacity: 0, y: 8, scale: .8 });
+  gsap.set(typedLine, { opacity: 0 });
+  gsap.set(cursor, { opacity: 0 });
+  gsap.set(badge, { opacity: 0, y: 8 });
+  gsap.set(frame, { boxShadow: '0 30px 90px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.06)' });
+  foundryCount.textContent = '';
+  foundryLabel.textContent = 'AI가 글자 세트를 생성하는 중 · A–Z a–z 0–9 기호';
+  tag.textContent = '이미지 글자 · 편집 불가';
+  statusText.textContent = '이미지 불러옴 · PNG / PDF';
+
+  const tl = gsap.timeline();
+  // PHASE 1 — analyze the glyphs in the image
+  tl.add(() => { statusText.textContent = '이미지 속 글자 분석 중…'; });
+  tl.set(scan, { opacity: 1, top: '-12%' });
+  tl.to(scanFrame, { opacity: 1, duration: .3 }, 0);
+  tl.to(scan, { top: '108%', duration: 1.1, ease: 'power2.inOut' }, 0);
+  tl.to(scan, { opacity: 0, duration: .2 }, 1.0);
+  tl.to(scanFrame, { opacity: 0, duration: .3 }, 1.05);
+
+  // PHASE 2 — AI generates each glyph → a new custom font
+  tl.add(() => { statusText.textContent = 'AI가 폰트를 생성 중…'; }, '+=.05');
+  tl.to(foundry, { opacity: 1, duration: .35, ease: 'power2.out' });
+  let genCount = 0;
+  tl.to(glyphs, {
+    opacity: 1, y: 0, scale: 1,
+    duration: .34, ease: 'back.out(1.7)',
+    stagger: {
+      each: 0.075,
+      onStart: () => {
+        genCount += 1;
+        foundryCount.textContent = genCount + '자 생성…';
+      }
+    }
+  });
+
+  // PHASE 3 — custom font ready → type new editable text with it
+  tl.add(() => {
+    statusText.textContent = '커스텀 폰트 생성 완료';
+    foundryLabel.textContent = '커스텀 폰트 적용 완료 · 이제 자유롭게 입력';
+    foundryCount.textContent = '';
+    tag.textContent = '커스텀 폰트 · 편집 가능';
+  }, '+=.15');
+  tl.to(frame, {
+    boxShadow: '0 30px 90px rgba(0,0,0,.4), 0 0 0 1px rgba(103,232,249,.18), inset 0 1px 0 rgba(255,255,255,.06)',
+    duration: .45, ease: 'power2.out'
+  }, '<');
+  tl.set(typedLine, { opacity: 1 });
+  tl.add(() => {
+    startCursorBlink(cursor);
+    typeText(typedText, 'MIDNIGHT DROP 2026', 0.08, () => {
+      gsap.to(badge, { opacity: 1, y: 0, duration: .4, ease: 'back.out(1.4)' });
+      statusText.textContent = '완료 · 생성된 폰트로 편집 가능';
+      gsap.to(replay, { opacity: 1, y: 0, duration: .4, ease: 'power2.out' });
+      // settle cursor: blink a few more times then fade
+      gsap.delayedCall(1.2, () => { stopCursorBlink(); gsap.to(cursor, { opacity: 0, duration: .3 }); });
+    });
+  });
+}
+
+const fontReplay = document.getElementById('fontReplay');
+if (fontReplay) fontReplay.addEventListener('click', runFontRecovery);
+
+// helper: spawn drifting particles inside a container
+function spawnParticles(container, count = 14) {
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const x = Math.random() * 100;
+    const y = Math.random() * 100;
+    p.style.left = x + '%';
+    p.style.top = y + '%';
+    container.appendChild(p);
+    gsap.to(p, {
+      opacity: .9,
+      delay: Math.random() * 1.2,
+      duration: .8,
+      ease: 'power2.out',
+    });
+    gsap.to(p, {
+      y: -(60 + Math.random() * 120),
+      x: (Math.random() - .5) * 80,
+      duration: 4 + Math.random() * 3,
+      repeat: -1,
+      yoyo: true,
+      ease: 'sine.inOut',
+      delay: Math.random() * 2,
+    });
+  }
+}
+
+// SLIDE 6 — Feature A HERO: floating layer stack
+function animFeatureAHero() {
+  const cards = document.querySelectorAll('#s6 .lg-card');
+  // arrange in 3D depth, slight stagger
+  const layout = [
+    { x: -120, y:  80, z: -120, rx: 8,  ry: -12 },
+    { x:  -40, y:  30, z:  -40, rx: 6,  ry:  -6 },
+    { x:   60, y: -30, z:   40, rx: 4,  ry:   4 },
+    { x:  140, y: -90, z:  120, rx: 2,  ry:  12 },
+  ];
+  gsap.set(cards, { opacity: 0, scale: .8 });
+  cards.forEach((c, i) => {
+    const t = layout[i];
+    gsap.to(c, {
+      opacity: 1, scale: 1,
+      x: t.x, y: t.y, z: t.z,
+      rotateX: t.rx, rotateY: t.ry,
+      duration: 1.1,
+      delay: .15 + i * .12,
+      ease: 'power3.out',
+    });
+    // gentle continuous float
+    gsap.to(c, {
+      y: t.y + (Math.random() > .5 ? 12 : -12),
+      duration: 3 + Math.random(),
+      repeat: -1, yoyo: true,
+      ease: 'sine.inOut',
+      delay: 1.5 + i * .2,
+    });
+  });
+  spawnParticles(document.getElementById('p6'), 18);
+}
+
+// SLIDE 7 — Feature A LIVE DECOMPOSITION
+function animFeatureADemo() {
+  // reset
+  gsap.set('#s7 .tgt-layer', { opacity: 0, z: 0, y: 0, scale: .92 });
+  gsap.set('#s7 .scanline', { opacity: 0, top: '0%' });
+  gsap.set('#s7 .src-canvas .so-title, #s7 .src-canvas .so-img, #s7 .src-canvas .so-cap, #s7 .src-canvas .so-shape',
+    { opacity: 1 });
+}
+function runDecompose() {
+  const scan = document.getElementById('scanline');
+  const src = document.querySelectorAll('#s7 .src-canvas .so-title, #s7 .src-canvas .so-img, #s7 .src-canvas .so-cap, #s7 .src-canvas .so-shape');
+  const tgts = document.querySelectorAll('#s7 .tgt-layer');
+  // reset
+  gsap.set(tgts, { opacity: 0, z: 0, y: 0, scale: .92, x: 0, rotateX: 0 });
+  gsap.set(scan, { opacity: 0, top: '0%' });
+  gsap.set(src, { opacity: 1 });
+
+  const tl = gsap.timeline();
+  // 1) scan line moves down across source
+  tl.set(scan, { opacity: 1, top: '0%' });
+  tl.to(scan, { top: '100%', duration: 1.2, ease: 'power2.inOut' }, 0);
+  tl.to(scan, { opacity: 0, duration: .3 }, 1.1);
+
+  // 2) source elements dim/blur out
+  tl.to(src, {
+    opacity: .15, filter: 'blur(8px)',
+    duration: .8, stagger: .06, ease: 'power2.out',
+  }, .3);
+
+  // 3) target layers fade in, stacked in 3D depth
+  const layout = [
+    { y:  90, z: -140 },
+    { y:  30, z:  -50 },
+    { y: -30, z:   60 },
+    { y: -90, z:  150 },
+  ];
+  tgts.forEach((t, i) => {
+    tl.to(t, {
+      opacity: 1, scale: 1,
+      y: layout[i].y, z: layout[i].z,
+      rotateX: 8,
+      duration: .8, ease: 'back.out(1.4)',
+    }, .6 + i * .15);
+  });
+
+  // particles burst between source and target
+  spawnParticles(document.getElementById('p7'), 14);
+}
+document.getElementById('decompBtn').addEventListener('click', runDecompose);
+
+// SLIDE 8 — Feature B HERO: prompt clouds orbiting magic frame
+function animFeatureBHero() {
+  const clouds = document.querySelectorAll('#s8 .pcloud');
+  gsap.set(clouds, { opacity: 0, scale: .85 });
+  clouds.forEach((c, i) => {
+    gsap.to(c, {
+      opacity: 1, scale: 1,
+      duration: .7,
+      delay: .25 + i * .12,
+      ease: 'back.out(1.6)',
+    });
+    const dx = (Math.random() - .5) * 16;
+    const dy = (Math.random() - .5) * 16;
+    gsap.to(c, {
+      x: dx, y: dy,
+      duration: 3 + Math.random() * 2,
+      repeat: -1, yoyo: true,
+      ease: 'sine.inOut',
+      delay: 1 + i * .2,
+    });
+  });
+  spawnParticles(document.getElementById('p8'), 20);
+}
+
+// SLIDE 9 — INTERACTIVE DRAG BOX
+(() => {
+  const area = document.getElementById('playArea');
+  if (!area) return;
+  const sel = document.getElementById('selBox');
+  const promptBar = document.getElementById('promptBar');
+  const promptInput = document.getElementById('promptInput');
+  const sendBtn = document.getElementById('sendPrompt');
+  const processing = document.getElementById('processing');
+  const resetBtn = document.getElementById('resetCanvas');
+  let start = null;
+  let lastBox = null;
+
+  area.addEventListener('mousedown', e => {
+    if (e.target !== area && !e.target.classList.contains('hint')) return;
+    const r = area.getBoundingClientRect();
+    start = { x: e.clientX - r.left, y: e.clientY - r.top };
+    sel.style.display = 'block';
+    sel.style.left = start.x + 'px';
+    sel.style.top = start.y + 'px';
+    sel.style.width = '0px';
+    sel.style.height = '0px';
+    promptBar.style.display = 'none';
+  });
+  area.addEventListener('mousemove', e => {
+    if (!start) return;
+    const r = area.getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const x = Math.min(start.x, cx), y = Math.min(start.y, cy);
+    const w = Math.abs(cx - start.x), h = Math.abs(cy - start.y);
+    sel.style.left = x + 'px';
+    sel.style.top = y + 'px';
+    sel.style.width = w + 'px';
+    sel.style.height = h + 'px';
+  });
+  area.addEventListener('mouseup', e => {
+    if (!start) return;
+    const r = area.getBoundingClientRect();
+    const cx = e.clientX - r.left, cy = e.clientY - r.top;
+    const x = Math.min(start.x, cx), y = Math.min(start.y, cy);
+    const w = Math.abs(cx - start.x), h = Math.abs(cy - start.y);
+    start = null;
+    if (w < 40 || h < 40) { sel.style.display = 'none'; return; }
+    lastBox = { x, y, w, h };
+    // place prompt bar below the box
+    promptBar.style.display = 'flex';
+    promptBar.style.left = x + 'px';
+    promptBar.style.top = (y + h + 10) + 'px';
+    // pulse
+    gsap.fromTo(sel, { boxShadow: '0 0 0 0 rgba(167,139,250,.6)' }, { boxShadow: '0 0 0 14px rgba(167,139,250,0)', duration: 1.2, ease: 'power2.out', repeat: -1 });
+    promptInput.focus();
+  });
+
+  function applyPrompt() {
+    if (!lastBox) return;
+    const text = promptInput.value.trim();
+    promptBar.style.display = 'none';
+    processing.style.display = 'flex';
+    setTimeout(() => {
+      processing.style.display = 'none';
+      // replace elements inside the selection
+      const elements = area.querySelectorAll('.canvas-el');
+      const themes = {
+        '교토': { t1: '교토 가을 산책', t2: '청수사부터 후시미이나리까지, 단풍이 절정인 골목길의 기록.', t3: '2026 · Autumn · Kyoto', img1: '🍁 KYOTO STREET', img2: '⛩ TORII' },
+        '뉴욕': { t1: 'New York Diary', t2: '센트럴파크부터 브루클린 다리까지, 도시가 깨어나는 새벽.', t3: '2026 · NYC', img1: '🗽 SKYLINE', img2: '🚕 TAXI' },
+        '여행': { t1: '교토 여행 후기', t2: '청수사부터 후시미이나리까지 걸으며 가을을 담았다.', t3: '2026 · Autumn', img1: '🍁 KYOTO', img2: '⛩ SHRINE' },
+        '비즈니스': { t1: 'Q2 사업 보고', t2: '주요 KPI 달성률과 다음 분기 핵심 과제 정리.', t3: '2026 · Q2', img1: '📊 CHART', img2: '📈 KPI' },
+        '카페': { t1: 'Cafe Diary', t2: '계절 한정 메뉴와 햇살, 그리고 책 한 권의 오후.', t3: '2026 · Spring', img1: '☕ LATTE ART', img2: '📖 BOOK' },
+      };
+      let chosen = null;
+      for (const k of Object.keys(themes)) if (text.includes(k)) { chosen = themes[k]; break; }
+      if (!chosen) chosen = themes['여행']; // default surprise
+      elements.forEach(el => {
+        const box = el.getBoundingClientRect();
+        const aR = area.getBoundingClientRect();
+        const cx = box.left - aR.left + box.width / 2;
+        const cy = box.top - aR.top + box.height / 2;
+        const inside = cx >= lastBox.x && cx <= lastBox.x + lastBox.w &&
+                       cy >= lastBox.y && cy <= lastBox.y + lastBox.h;
+        if (!inside) return;
+        const cls = [...el.classList].find(c => chosen[c]);
+        if (!cls) return;
+        gsap.to(el, {
+          opacity: 0, y: -8, duration: .25, onComplete: () => {
+            el.textContent = chosen[cls];
+            gsap.to(el, { opacity: 1, y: 0, duration: .35, ease: 'power2.out' });
+          }
+        });
+      });
+      gsap.killTweensOf(sel);
+      gsap.to(sel, { opacity: 0, duration: .5, onComplete: () => { sel.style.display = 'none'; sel.style.opacity = 1; } });
+      lastBox = null;
+      promptInput.value = '';
+    }, 1200);
+  }
+  sendBtn.addEventListener('click', applyPrompt);
+  promptInput.addEventListener('keydown', e => { if (e.key === 'Enter') applyPrompt(); });
+
+  resetBtn.addEventListener('click', () => {
+    area.querySelectorAll('.canvas-el').forEach(el => {
+      el.textContent = el.dataset.orig;
+      gsap.fromTo(el, { opacity: 0 }, { opacity: 1, duration: .4 });
+    });
+    sel.style.display = 'none';
+    promptBar.style.display = 'none';
+    promptInput.value = '';
+    lastBox = null;
+  });
+})();
+
+// SLIDE 10 — closing
+function animClosing() {
+  gsap.fromTo('#s12 .word',
+    { y: 30, opacity: 0, filter: 'blur(6px)' },
+    { y: 0, opacity: 1, filter: 'blur(0px)', duration: .9, stagger: .15, ease: 'power3.out' });
+  gsap.fromTo('#s12 .orbit-ring',
+    { scale: 0, opacity: 0 },
+    { scale: 1, opacity: 1, duration: 1.4, stagger: .2, ease: 'power2.out' });
+  gsap.to('#s12 .orbit-ring', { rotate: 360, duration: 60, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
+}
+
+// kick off first slide
+playSlide(1);
+</script>
+</body>
+</html>
