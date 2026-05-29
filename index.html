@@ -1959,11 +1959,11 @@ function animFeatureBHero() {
 // SLIDE 10 — closing
 function animClosing() {
   gsap.fromTo('#s12 .word',
-    { y: 30, opacity: 0, filter: 'blur(6px)' },
-    { y: 0, opacity: 1, filter: 'blur(0px)', duration: .9, stagger: .15, ease: 'power3.out' });
+    { y: 44, opacity: 0, filter: 'blur(14px)' },
+    { y: 0, opacity: 1, filter: 'blur(0px)', duration: 1.5, delay: .4, stagger: .32, ease: 'power2.out' });
   gsap.fromTo('#s12 .orbit-ring',
     { scale: 0, opacity: 0 },
-    { scale: 1, opacity: 1, duration: 1.4, stagger: .2, ease: 'power2.out' });
+    { scale: 1, opacity: 1, duration: 1.6, delay: .25, stagger: .22, ease: 'power2.out' });
   gsap.to('#s12 .orbit-ring', { rotate: 360, duration: 60, repeat: -1, ease: 'none', transformOrigin: '50% 50%' });
 }
 
